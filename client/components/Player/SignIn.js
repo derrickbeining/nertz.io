@@ -29,30 +29,30 @@ class SignIn extends Component {
   handleSignIn () {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    if (email.length < 4) {
-      alert('Please enter an email address.');
+    if (email.length < 4 || email.indexOf('@') === -1) {
+      alert('Please enter a valid email address.');
       return;
     }
     if (password.length < 4) {
-      alert('Please enter a password.');
+      alert('Please enter a valid password.');
       return;
     }
     // Sign in with email and pass.
     auth.signInWithEmailAndPassword(email, password)
     .then(() => {
       console.log("This is user after signing in: ", auth.currentUser.email)
+      this.setState({
+        redirectSignedInUser: true
+      })
     })
     .catch(function(error) {
       var errorCode = error.code;
       var errorMessage = error.message;
-      alert(errorMessage);
+      alert('No such email / password combination. Please try again.');
       console.log(error);
+      return;
     });
-    this.setState({
-      redirectSignedInUser: true
-    })
   }
-
 
 
   render () {
@@ -89,6 +89,20 @@ class SignIn extends Component {
 
         // </div>
       )
+  }
+}
+
+const styles = {
+  btn: {
+    background: '#f5eff7',
+    backgroundImage: 'linear-gradient(to bottom, #f5eff7, #d6d3d6)',
+    borderRadius: '8px',
+    boxShadow: '2px 2px 3px #666666',
+    fontFamily: 'Arial',
+    color: '#4d404d',
+    fontSize: '18px',
+    padding: '5px 7px 5px 7px',
+    textDecoration: 'none',
   }
 }
 

@@ -87,6 +87,7 @@ const generateNFieldStackNodes = num => {
   return fieldStacks;
 }
 
+//sets fieldStackNodes in db
 const set4FieldStacksPerPlayer = () => {
   return goCountAllPlayersInGame()
     .then(numPlayers => {
@@ -116,12 +117,25 @@ const generateStacksForPlayer = (playerNum) => {
   }
 }
 
+const linkReduxStacksWithDbByPlayerNum = (playerNum) => {
+  const playerRef = currentGameRef.child(`players/${playerNum}`);
+  playerRef.child('stacks').once('value')
+  .then((snapShotOfAllStacks) => {
+    snapShotOfAllStacks.forEach(stack => {
+      storeStackRefInReduxByKey(stack.key, stack.ref)
+      updateReduxPlayerStackByKey(stack.key, stack.val())
+    })
+  })
+  .catch(console.error.bind(console));
+}
+
 const initPlayerAreaByPlayerNum = (playerNum) => {
   console.log(`initPlayerAreaByPlayerNum(${playerNum})`)
   const playerRef = getReduxGameRef().child(`players/${playerNum}`);
   const stacksNode = generateStacksForPlayer(playerNum);
   const settingPlayersStacks = playerRef.child('stacks').set(stacksNode)
   return settingPlayersStacks
+<<<<<<< HEAD
   // THIS NEEDS TO HAPPEN ON ALL CLIENTS, NOT JUST P1
   // .then(() => playerRef.child('stacks').once('value'))
     // .then((snapShotOfAllStacks) => {
@@ -136,11 +150,18 @@ const initPlayerAreaByPlayerNum = (playerNum) => {
 
 const initAllPlayerAreas = () => {
   console.log('initAllPlayerAreas()')
+=======
+    .then(() => linkReduxStacksWithDbByPlayerNum(playerNum))
+}
+
+const initAllPlayerAreas = (dbGameInstanceIsPreInitialized) => {
+>>>>>>> master
   return goCountAllPlayersInGame()
   .then(numOfPlayers => {
     const playerAreasInitializing = [];
     for (let i = 1; i <= numOfPlayers; i++) {
-      const initializingArea = initPlayerAreaByPlayerNum(i);
+      //if dbGameInstanceIsPreInitialized, skip creation of nodes in db, just set up Redux to link w/ them
+      const initializingArea = dbGameInstanceIsPreInitialized ? linkReduxStacksWithDbByPlayerNum(i) : initPlayerAreaByPlayerNum(i);
       playerAreasInitializing.push(initializingArea)
     }
     return Promise.all(playerAreasInitializing);
@@ -189,3 +210,18 @@ export const startGame = () => {
   // .then(() => registerUpdateHandlersOnGameRef())
   .catch(console.error.bind(console))
 }
+
+
+export const resetReduxForPendingGameInstance = (gameRef) => {
+  setGameRefForUtils(gameRef)
+  setGameRefInRedux(gameRef)
+  updateReduxWhenPlayersJoinGame(gameRef)
+}
+
+export const resetReduxForStartedDbGameInstance = (gameRef) => {
+  resetReduxForPendingGameInstance(gameRef)
+  storeFieldStackRefsInRedux(gameRef)
+  initAllPlayerAreas(true)
+  registerUpdateHandlersOnGameRef(gameRef)
+}
+

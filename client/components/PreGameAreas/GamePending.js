@@ -43,6 +43,11 @@ class GamePending extends Component {
     }
   }
 
+  componentDidMount(){
+    const gameRef = db.ref(`games/${this.props.match.params.gameId}`)
+    resetReduxForPendingGameInstance(gameRef);
+  }
+
   startNewGame(){
     startGame(this.gameKey);
     this.setState({
