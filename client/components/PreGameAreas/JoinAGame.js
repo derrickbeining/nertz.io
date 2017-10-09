@@ -1,7 +1,11 @@
 import React, {Component} from 'react';
 import {connect} from 'react-redux';
 import {Redirect} from 'react-router-dom';
-import {addNewGame, addPlayerToGame} from '../../firebase';
+import {clearPlayersInStore} from '../../redux/reduxUtils';
+import {
+  postNewPrivateGameStoreInRedux,
+  addUserToCurrentGame
+} from '../../firebase';
 import firebase from 'firebase'
 const db = firebase.database();
 
@@ -20,92 +24,99 @@ class JoinAGame extends Component {
     this.joinPrivateGame = this
       .joinPrivateGame
       .bind(this);
-    this.joinPublicGame = this
-      .joinPublicGame
-      .bind(this);
-    this.startGame = this
-      .startGame
-      .bind(this);
+
   }
 
-  handleChange(event) {
-    this.setState({showJoinGameError: false, gameKeyInput: event.target.value});
-  }
+    componentDidMount() {
+      // important for GamePending to determine if current user is new player
+      return clearPlayersInStore();
+    }
 
-  joinPrivateGame(event) {
-    event.preventDefault();
-    const gameKey = this.state.gameKeyInput
-      let gameExists,
-        playersNeeded;
-      const privateGameRef = db.ref(`games/${gameKey}`);
-      privateGameRef
-        .once('value')
-        .then((gameSnapshot) => {
-          gameExists = gameSnapshot.exists();
-          playersNeeded = gameSnapshot
-            .child('players')
-            .numChildren() < 4;
-          if (gameExists && playersNeeded) {
-            addPlayerToGame(this.props.me, privateGameRef);
-            // TODO: Check to see if .then should be on this line after addPlayerToGame call
-            // for rest of functionality
-            this.setState({gameId: gameKey, redirect: true})
-          } else {
-            this.setState({showJoinGameError: true})
-          }
-        })
+    startNewPrivateGame() {
+      const gameKey = postNewPrivateGameStoreInRedux().key;
+      this.props.history.push(`/pending-game/${gameKey}`)
     }
 
     joinPublicGame() {
-      /* TODO HERE: find random public game (ie private attribute set to
-      false) in Firebase DB that has less than 4 'players', and
-      set gameId in state to that game's key (and publicGameRef in
-      following function's argument to that game's ref)
-    */
-      db.ref('games')
-      addPlayerToGame(this.props.me, publicGameRef);
-      // TODO: Check to see if .then should be on this line after addPlayerToGame call
-      // for rest of functionality
-      this.setState({redirect: true})
+    // TODO: create getKeyForNextOpenPublicGame
+      // const gameKey = getKeyForNextOpenPublicGame()
+      // this.props.history.push(`/pending-game/${gameKey}`)
     }
 
-    startGame(event) {
-      const isPrivateGame = event.target.name === 'startPrivateGame';
-      const gameRef = addNewGame();
-      let gameKey = gameRef.key;
-      addPlayerToGame(this.props.me, gameRef).then(() => {
-        gameRef
-          .child('private')
-          .set(isPrivateGame)
-          .then(() => {
-            this.setState({gameId: gameKey, redirect: true})
-          })
-      })
+    joinPrivateGameByKey() {
+
     }
+
+    handleChange(event) {
+      this.setState({showJoinGameError: false, gameKeyInput: event.target.value});
+    }
+
+    joinPrivateGame(event) {
+      event.preventDefault();
+      const gameKey = this.state.gameKeyInput
+        let gameExists,
+          playersNeeded;
+        const privateGameRef = db.ref(`games/${gameKey}`);
+        privateGameRef
+          .once('value')
+          .then((gameSnapshot) => {
+            gameExists = gameSnapshot.exists();
+            playersNeeded = gameSnapshot
+              .child('players')
+              .numChildren() < 4;
+            if (gameExists && playersNeeded) {
+              addUserToCurrentGame(this.props.me, privateGameRef);
+              // TODO: Check to see if .then should be on this line after addUserToCurrentGame call
+              // for rest of functionality
+              this.setState({gameId: gameKey, redirect: true})
+            } else {
+              this.setState({showJoinGameError: true})
+            }
+          })
+      }
 
     render() {
-      console.log(this.props, 'AND', this.props.me)
       return (
         <div style={styles.JoinAGame}>
-          {this.state.redirect && <Redirect to={`/pendingGames/${this.state.gameId}`}/>
+          {this.state.redirect && <Redirect to={`/pending-game/${this.state.gameId}`}/>
 }
-          <h1>Join A Game!</h1>
+          <h1>Let's Play Nertz!</h1>
+
           <div>
-            <h3>Start New Game</h3>
-            <button style={styles.button} name="startPublicGame" onClick={this.startGame}>Public</button>
-            <button style={styles.button} name="startPrivateGame" onClick={this.startGame}>Private</button>
+            <h3>Start An Invite-Only Game</h3>
+
+            <button
+              style={styles.button}
+              name="startPrivateGame"
+              onClick={() => this.startNewPrivateGame()}
+            >
+              Start
+            </button>
+
           </div>
+
           <div>
-            <h3>Join Existing Game</h3>
-            <button style={styles.button} onClick={this.joinPublicGame}>Join Random Game</button>
+            <h3>Join A Public Game</h3>
+
+            <button style={styles.button}
+              onClick={() => this.joinPublicGame()}
+            >
+              Join
+            </button>
+
+            <h3>Join Your Friends!</h3>
+
             <div>
               <form onSubmit={this.joinPrivateGame}>
                 <input
                   placeholder="Game Key"
                   onChange={this.handleChange}
                   value={this.state.gameKeyValue}
-                  autoFocus/>
-                <button style={styles.button}>Join Private Game</button>
+                  autoFocus
+                />
+
+                <button style={styles.button}>Join</button>
+
               </form>
               {this.state.showJoinGameError && <p>Game key provided does not match a playable game.</p>
 }
@@ -128,7 +139,7 @@ class JoinAGame extends Component {
 
   function mapStateToProps (state){
     return {
-      me: state.meReducer
+      me: state.user,
     }
   }
 

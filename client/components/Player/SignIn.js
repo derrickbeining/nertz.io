@@ -1,7 +1,9 @@
+import '../../../node_modules/firebaseui/dist/firebaseui.css'
 import React, { Component } from 'react';
-import {Redirect, Link} from 'react-router-dom';
-import firebase from 'firebase';
-const auth = firebase.auth();
+import {Redirect} from 'react-router-dom';
+import displayAuthPanelIn from '../../firebase/authUI';
+// import firebase from 'firebase';
+// const auth = firebase.auth();
 
 class SignIn extends Component {
 
@@ -13,6 +15,10 @@ class SignIn extends Component {
     this.state = {
       redirectSignedInUser: false
     }
+  }
+
+  componentDidMount() {
+    return displayAuthPanelIn('#auth-ui-panel')
   }
 
   handleSignOut () {
@@ -50,36 +56,38 @@ class SignIn extends Component {
 
 
   render () {
-    if (this.state.redirectSignedInUser) {
-      return <Redirect to={'/join'} />
-    }
+    // if (this.state.redirectSignedInUser) {
+    //   return <Redirect to={'/join'} />
+    // }
       return (
-        <div>
-          {true &&
-          <div>
-            <div>
-              <h1>Sign In To This AWESOME Game</h1>
-              <input className="text-input" type="text" id="email" name="email" placeholder="Email"/>
-              <input className="text-input" type="password" id="password" name="password" placeholder="Password" />
-              <br />
-              <button style={styles.btn} className="signin-button" id="quickstart-sign-in" onClick={this.handleSignIn} name="signin">Sign In</button>
-            </div>
-            <br />
-            <div>
-              <h2>No Account? No problem!</h2>
-              <Link style={styles.btn} to={'/signup'}>Sign Up Here</Link>
-            </div>
-          </div>
-          }
 
-          {false &&
-          <div>
-            <h1>Hi there, {this.state.displayName}!</h1>
-            <button className="signout-button" id="quickstart-sign-out" onClick={this.handleSignOut} name="signout">Sign Out</button>
-          </div>
-          }
+        <div id="auth-ui-panel"
+          style={{
+            alignItems: 'center',
+            display: 'flex',
+            height: '50vh',
+            justifyContent: 'space-around',
+          }}
+        />
+        // <div>
+        //   {true &&
+        //   <div>
+        //     <h1>Sign In To This AWESOME Game</h1>
+        //     <input className="text-input" type="text" id="email" name="email" placeholder="Email"/>
+        //     <input className="text-input" type="password" id="password" name="password" placeholder="Password"/>
+        //     <br/>
+        //     <button className="signin-button" id="quickstart-sign-in" onClick={this.handleSignIn} name="signin">Sign In</button>
+        //   </div>
+        //   }
 
-        </div>
+        //   {false &&
+        //   <div>
+        //     <h1>Hi there, {this.state.displayName}!</h1>
+        //     <button className="signout-button" id="quickstart-sign-out" onClick={this.handleSignOut} name="signout">Sign Out</button>
+        //   </div>
+        //   }
+
+        // </div>
       )
   }
 }

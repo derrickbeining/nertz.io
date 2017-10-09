@@ -1,18 +1,46 @@
 import React, {Component} from 'react';
 import { Redirect } from 'react-router-dom';
 import {connect} from 'react-redux';
-import {startGame, resetReduxForPendingGameInstance} from '../../firebase';
-import firebase from 'firebase'
-const db = firebase.database()
+import {
+  addUserToCurrentGame,
+  getGameRefByKey,
+  postUserToGameAsPlayerAndUpdateReduxAsPlayersJoin,
+  startGame,
+} from '../../firebase';
+import {
+  getCurrentUserInRedux,
+  getPlayersInRedux,
+  setGameRefInRedux,
+  tellReduxImLoading,
+  tellReduxImDoneLoading,
+} from '../../redux/reduxUtils';
+import {
+  checkIfUserIsAmongPlayers,
+  thereAreNo,
+} from '../../vanillaUtils';
 
 class GamePending extends Component {
   constructor(props){
     super(props)
-    this.state = {
-      shouldRedirectToGame: false,
+     this.gameKey = props.match.params.gameId;
+  }
+
+  componentWillMount() {
+    this.initializePendingGame()
+  }
+
+  componentDidMount() {
+    const playerCount = Object.values(this.props.players).length;
+    if (playerCount === 4) {
+      setTimeout(() => this.props.history.push(`/play/${this.gameKey}`), 1000);
     }
-    this.gameKey = props.match.params.gameId;
-    this.startNewGame = this.startNewGame.bind(this);
+  }
+
+  componentDidUpdate() {
+    const playerCount = Object.values(this.props.players).length;
+    if (playerCount === 4) {
+      setTimeout(() => this.props.history.push(`/play/${this.gameKey}`), 1000);
+    }
   }
 
   componentDidMount(){
@@ -27,25 +55,49 @@ class GamePending extends Component {
     })
   }
 
+  initializePendingGame() {
+    setGameRefInRedux(getGameRefByKey(this.gameKey))
+    const playersInRedux = this.props.players;
+
+    // either you're 1st or firebase is still loading
+    if (thereAreNo(playersInRedux)) {
+      tellReduxImLoading()
+      return addUserToCurrentGame()
+      .then(() => setTimeout(() => tellReduxImDoneLoading(), 1000))
+      .catch(console.error.bind(console));
+
+    } else { // there are players in Redux
+      const userIsAlreadyInGame = checkIfUserIsAmongPlayers(playersInRedux);
+      // don't add player if already added
+      if (userIsAlreadyInGame) return;
+
+      tellReduxImLoading()
+      return addUserToCurrentGame()
+        .then(() => setTimeout(() => tellReduxImDoneLoading(), 1000))
+        .catch(console.error.bind(console));
+    }
+  }
+
   render(){
-    console.log(this.props, 'and', this.props.players)
-    const playerKeys = Object.keys(this.props.players).sort();
+    const players = Object.values(this.props.players);
 
     return (
       <div style={styles.GamePending}>
+
         <h1>Waiting for Four Players...</h1>
+
         <h3>Game Key: {this.gameKey}</h3>
+
         <div style={{borderStyle: 'solid'}}>
-          {
-            playerKeys.length === 4 ? this.startNewGame() :
-            playerKeys.map((playerKey, index) => (
-              <h4 key={playerKey} >Player {index + 1}. {this.props.players[playerKey].displayName}</h4>
-            ))
-          }
+
+          {players.map((player, idx) => (
+            <h4 key={player.uid}>
+              {idx + 1}) {players[idx].displayName}
+            </h4>
+          ))}
+
         </div>
-        {
-          this.state.shouldRedirectToGame && <Redirect to={`/gamesInProgress/${this.gameKey}`} />
-        }
+
       </div>
     )
   }
@@ -61,7 +113,8 @@ const styles = {
 
 function mapStateToProps (state) {
   return {
-    players: state.players
+    currentUser: state.user,
+    players: state.players, // incoming as object
   }
 }
 
